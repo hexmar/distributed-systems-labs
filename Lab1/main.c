@@ -48,22 +48,36 @@ int main(int argc, char **argv)
 	graph.tree = (char*)calloc(i, sizeof(char));
 	for (int j = 0; j < i; j++)
 		graph.vertices[j] = a[j];
-	graph.edges = (EDGE**)malloc(i * sizeof(EDGE*));
-	int row, col;
+	graph.edges = (EDGE**)calloc(i, sizeof(EDGE*));
 	EDGE *edge;
 	while (a[i + 1] != 0) {
 		edge = (EDGE*)malloc(sizeof(EDGE));
-		edge.vert[0] = a[++i];
-		edge.vert[1] = a[++i];
+		edge->vert[0] = a[++i];
+		edge->vert[1] = a[++i];
 		i += 2;
 		while (a[i] != 10)
-			edge.weight = edge.weight * 10 - 48 + a[i++];
-		for (int j = 0; j < graph.size; j++) {
-			for (int k = 0; k < graph.size; k++)
-				printf("%d ", graph.weights[j][k]);
-			putchar('\n');
+			edge->weight = edge->weight * 10 - 48 + a[i++];
+		for (int j = 0; j < 2; j++) {
+			edge->next[j] = NULL;
+			int vert = VertToInt(&graph, edge->vert[j]);
+			if (graph.edges[vert] == NULL) {
+				graph.edges[vert] = edge;
+				edge->prev[j] = NULL;
+			}
+			else {
+				EDGE *iter = graph.edges[vert];
+				int vie;
+				while (1) {
+					vie = iter->vert[0] == edge->vert[j] ? 0 : 1;
+					if (iter->next[vie] == NULL)
+						break;
+					else
+						iter = iter->next[vie];
+				}
+				iter->next[vie] = edge;
+				edge->prev[j] = iter;
+			}
 		}
-		putchar('\n');
 	}
 	ARG *arg;
 /*	ARG *arg = (ARG*)malloc(sizeof(ARG));
@@ -138,7 +152,7 @@ void *FindMin(void *Arg) {
 			if (excludes[j] == i)
 				flag = 0;
 		if ((arg->graph->weights[row][i] != 0) && flag)
-			if ((arg->min[arg->threadNumber] == 0) || 
+			if ((arg->min[arg->threadNumber] == 0) ||
 				(arg->min[arg->threadNumber] > arg->graph->weights[row][i]))
 				arg->min[arg->threadNumber] = arg->graph->weights[row][i];
 	}
