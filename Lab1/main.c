@@ -23,8 +23,14 @@ typedef struct A {
 	EDGE **min, ***edges;
 } ARG;
 
+typedef struct F {
+	EDGE *edge;
+	struct F *next;
+} FE;
+
 int VertToInt(GRAPH*, char);
 void *FindMin(void*);
+void AddEdgeToFE(FE*, EDGE*);
 
 int main(int argc, char **argv)
 {
@@ -113,16 +119,14 @@ int main(int argc, char **argv)
 	/*	ARG *arg = (ARG*)malloc(sizeof(ARG));
 	pthread_t thread[cores];
 	pthread_barrier_init(&barrier, NULL, 5);*/
+	EDGE **mins = (EDGE**)calloc(cores, sizeof(EDGE*));
+	pthread_t *thread = (pthread_t*)malloc(cores * sizeof(pthread_t));
+	pthread_barrier_t barrier;
+	pthread_barrier_init(&barrier, NULL, cores + 1);
 	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start_time);
 	graph.tree[0] = graph.vertices[0];
 	graph.treeSize = 1;
-	EDGE **mins;
-	pthread_t *thread;
-	pthread_barrier_t barrier;
 	while (graph.treeSize < graph.size) {
-		mins = (EDGE**)calloc(cores, sizeof(EDGE*));
-		thread = (pthread_t*)malloc(cores * sizeof(pthread_t));
-		pthread_barrier_init(&barrier, NULL, cores + 1);
 		for (i = 0; i < cores; i++) {
 			arg = (ARG*)malloc(sizeof(ARG));
 			arg->graph = &graph;
@@ -135,7 +139,6 @@ int main(int argc, char **argv)
 			pthread_create(&(thread[i]), NULL, &FindMin, arg);
 		}
 		pthread_barrier_wait(&barrier);
-		pthread_barrier_destroy(&barrier);
 		EDGE *min = NULL;
 		for (j = 0; j < cores; j++)
 			if (mins[j] != NULL)
@@ -214,6 +217,30 @@ int main(int argc, char **argv)
 	double result_time = (stop_time.tv_sec - start_time.tv_sec) * 1e6
 		+ (stop_time.tv_nsec - start_time.tv_nsec) / 1e3;
 	printf("\n%f\n", result_time);
+	pthread_barrier_destroy(&barrier);
+	free(thread);
+	free(mins);
+	for (i = 0; i < graph.size; i++)
+		free(edges_array[i]);
+	free(edges_array);
+	free(edges_in_row);
+	free(graph.tree);
+	free(graph.tree_edges);
+	FE *fe = NULL;
+	for (i = 0; i < graph.size; i++)
+		{
+			j = graph.vertices[i];
+			edge = graph.edges[i];
+			while(edge != NULL)
+				{
+					AddEdgeToFE(fe, edge);
+					edge = edge->vert[0] == j ? edge->next[0] : edge->next[1];
+				}
+		}
+	for (; fe != NULL; fe = fe->next)
+		free(fe->edge);
+	free(graph.vertices);
+	free(graph.edges);
 	return 0;
 }
 
@@ -251,3 +278,29 @@ void *FindMin(void *Arg) {
 	free(arg);
 	return NULL;
 }
+
+void AddEdgeToFE(FE *fe, EDGE *edge)
+	{
+		if (fe == NULL)
+			{
+				fe = (FE*)malloc(sizeof(FE));
+				fe->edge = edge;
+				fe->next = NULL;
+			}
+		else
+			{
+				FE *iter = fe;
+				int b = 1;
+				for (; b && (iter->next != NULL); iter = iter->next)
+					{
+						if (iter->edge == edge)
+							b = 0;
+					}
+				if (b == 1)
+					{
+						iter = iter->next = (FE*)malloc(sizeof(FE));
+						iter->edge = edge;
+						iter->next = NULL;
+					}
+			}
+	}
