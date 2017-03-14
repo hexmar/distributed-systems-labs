@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <time.h>
 
 typedef struct E {
 	char vert[2];
@@ -33,6 +34,7 @@ int main(int argc, char **argv)
 	}
 	char a[1024];
 	int i, j, cores = atoi(argv[1]);
+	struct timespec start_time, stop_time;
 	{
 		FILE *file_input;
 		if (argc == 3)
@@ -111,6 +113,7 @@ int main(int argc, char **argv)
 	/*	ARG *arg = (ARG*)malloc(sizeof(ARG));
 	pthread_t thread[cores];
 	pthread_barrier_init(&barrier, NULL, 5);*/
+	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start_time);
 	graph.tree[0] = graph.vertices[0];
 	graph.treeSize = 1;
 	EDGE **mins;
@@ -198,6 +201,7 @@ int main(int argc, char **argv)
 			}
 		}
 	}
+	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &stop_time);
 	printf("\n%c\n", graph.tree[0]);
 	for (i = 1; i < graph.treeSize; i++)
 	{
@@ -207,6 +211,9 @@ int main(int argc, char **argv)
 			graph.tree_edges[i - 1]->vert[1],
 			graph.tree_edges[i - 1]->weight);
 	}
+	double result_time = (stop_time.tv_sec - start_time.tv_sec) * 1e6
+		+ (stop_time.tv_nsec - start_time.tv_nsec) / 1e3;
+	printf("\n%f\n", result_time);
 	return 0;
 }
 
