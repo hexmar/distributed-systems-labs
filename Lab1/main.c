@@ -262,7 +262,7 @@ int VertToInt(GRAPH *Graph, char Vert) {
 
 void *FindMin(void *Arg) {
 	ARG *arg = (ARG*)Arg;
-	int step-left, vert, row;
+	int step_left, vert, row;
 	pthread_barrier_wait(arg->barrier);
 	do {
 	step_left = arg->thread_number;
