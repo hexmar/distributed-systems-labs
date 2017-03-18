@@ -118,6 +118,9 @@ int main(int argc, char **argv)
 	ARG **args = (ARG**)calloc(cores, sizeof(ARG*));
 	EDGE **mins = (EDGE**)calloc(cores, sizeof(EDGE*));
 	pthread_t *thread = (pthread_t*)malloc(cores * sizeof(pthread_t));
+	pthread_attr_t p_attr;
+	pthread_attr_init(&p_attr);
+	pthread_attr_setdetachstate(&p_attr, PTHREAD_CREATE_DETACHED);
 	pthread_barrier_t barrier;
 	pthread_barrier_init(&barrier, NULL, cores + 1);
 	for (i = 0; i < cores; i++) {
@@ -129,7 +132,7 @@ int main(int argc, char **argv)
 			args[i]->barrier = &barrier;
 			args[i]->edges = edges_array;
 			args[i]->edges_count = edges_in_row;
-			pthread_create(&(thread[i]), NULL, &FindMin, args[i]);
+			pthread_create(&(thread[i]), &p_attr, &FindMin, args[i]);
 		}
 	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start_time);
 	graph.tree[0] = graph.vertices[0];
@@ -226,6 +229,7 @@ int main(int argc, char **argv)
 	cores = 0;
 	pthread_barrier_wait(&barrier);
 	pthread_barrier_destroy(&barrier);
+	pthread_attr_destroy(&p_attr);
 	free(thread);
 	free(mins);
 	for (i = 0; i < graph.size; i++)
