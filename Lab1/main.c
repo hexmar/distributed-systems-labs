@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
-#include <time.h>
+#include <sys/time.h>
 
 typedef struct E {
 	char vert[2];
@@ -40,7 +40,8 @@ int main(int argc, char **argv)
 	}
 	char a[1024];
 	int i, j, cores = atoi(argv[1]), row = -1;
-	struct timespec start_time, stop_time;
+	struct timeval start_time, stop_time;
+	start_time.tv_sec = stop_time.tv_sec = start_time.tv_usec = stop_time.tv_usec = 0;
 	{
 		FILE *file_input;
 		if (argc == 3)
@@ -135,7 +136,7 @@ int main(int argc, char **argv)
 			args[i]->row = &row;
 			pthread_create(&(thread[i]), &p_attr, &FindMin, args[i]);
 		}
-	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start_time);
+	gettimeofday(&start_time, NULL);
 	graph.tree[0] = graph.vertices[0];
 	graph.treeSize = 1;
 	pthread_barrier_wait(&barrier);
@@ -147,31 +148,6 @@ int main(int argc, char **argv)
 				pthread_barrier_wait(&barrier);
 				pthread_barrier_wait(&barrier);
 				row = -1;
-				/* i = VertToInt(&graph, graph.tree[graph.treeSize - 1]);
-				for (j = 0; j < edges_in_row[i]; j++)
-				{
-					for (int k = 0; k < (graph.treeSize - 1); k++)
-					{
-						int vie = edges_array[i][j]->vert[0] == graph.tree[graph.treeSize - 1] ? 1 : 0;
-						if (edges_array[i][j]->vert[vie] == graph.tree[k])
-						{
-							int move = 0, tree_row = VertToInt(&graph, edges_array[i][j]->vert[vie]);
-							for (int l = 0; l < edges_in_row[tree_row]; l++)
-							{
-								if (move)
-									edges_array[tree_row][l] = edges_array[tree_row][l + 1];
-								else if (edges_array[tree_row][l] == edges_array[i][j])
-								{
-									move = 1;
-									edges_array[tree_row][l] = edges_array[tree_row][l + 1];
-									edges_in_row[tree_row]--;
-								}
-							}
-							edges_array[i][j] = NULL;
-							break;
-						}
-					}
-				} */
 				/* Move from right to NULLs */
 				j = 0;
 				for (int move = 0; j < edges_in_row[i]; j++)
@@ -218,7 +194,7 @@ int main(int argc, char **argv)
 		graph.tree_edges[graph.treeSize - 1] = min;
 		graph.treeSize++;
 	}
-	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &stop_time);
+	gettimeofday(&stop_time, NULL);
 	printf("\n%c\n", graph.tree[0]);
 	for (i = 1; i < graph.treeSize; i++)
 	{
@@ -228,9 +204,9 @@ int main(int argc, char **argv)
 			graph.tree_edges[i - 1]->vert[1],
 			graph.tree_edges[i - 1]->weight);
 	}
-	double result_time = (stop_time.tv_sec - start_time.tv_sec) * 1e6
-		+ (stop_time.tv_nsec - start_time.tv_nsec) / 1e3;
-	printf("\n%f\n", result_time);
+	long long result_time = (stop_time.tv_sec - start_time.tv_sec) * 1e6
+		+ (stop_time.tv_usec - start_time.tv_usec);
+	printf("\n%lld\n", result_time);
 	cores = 0;
 	pthread_barrier_wait(&barrier);
 	pthread_barrier_destroy(&barrier);
