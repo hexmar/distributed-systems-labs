@@ -4,14 +4,14 @@
 #include <sys/time.h>
 
 typedef struct E {
-	char vert[2];
+	int vert[2];
 	struct E *next[2], *prev[2];
 	int weight;
 } EDGE;
 
 typedef struct G {
-	char *vertices, *tree;
-	int size, treeSize;
+	char **vertices;
+	int size, tree_size, *tree;
 	EDGE **edges, **tree_edges;
 } GRAPH;
 
@@ -28,7 +28,7 @@ typedef struct F {
 	struct F *next;
 } FE;
 
-int VertToInt(GRAPH*, char);
+int VertToInt(GRAPH*, char*);
 void *FindMin(void*);
 void AddEdgeToFE(FE*, EDGE*);
 
@@ -38,60 +38,114 @@ int main(int argc, char **argv)
 		printf("Invalid number of arguments. Two or three arguments are required.\n");
 		exit(EXIT_FAILURE);
 	}
-	char a[1024];
+	char a, edge_title[8];
 	int i, j, cores = atoi(argv[1]), row = -1;
 	struct timeval start_time, stop_time;
 	start_time.tv_sec = stop_time.tv_sec = start_time.tv_usec = stop_time.tv_usec = 0;
-	{
-		FILE *file_input;
-		if (argc == 3)
-			file_input = fopen(argv[2], "r");
-		else
-			file_input = fopen("input", "r");
-		for (i = 0; i < 1024; i++)
-			a[i] = 0;
-		for (i = 0; feof(file_input) == 0; i++)
-			fscanf(file_input, "%c", &(a[i]));
-		fclose(file_input);
-	}
-	GRAPH graph;
-	for (i = 0; a[i] != 10; i++);
-	graph.size = i;
-	graph.vertices = (char*)calloc(i, sizeof(char));
-	graph.tree = (char*)calloc(i, sizeof(char));
-	graph.tree_edges = (EDGE**)malloc((i - 1) * sizeof(EDGE*));
-	for (int j = 0; j < i; j++)
-		graph.vertices[j] = a[j];
-	graph.edges = (EDGE**)calloc(i, sizeof(EDGE*));
-	EDGE *edge;
-	while (a[i + 1] != 0) {
-		edge = (EDGE*)malloc(sizeof(EDGE));
-		edge->vert[0] = a[++i];
-		edge->vert[1] = a[++i];
-		i += 2;
-		edge->weight = 0;
-		while (a[i] != 10)
-			edge->weight = edge->weight * 10 - 48 + a[i++];
-		for (int j = 0; j < 2; j++) {
-			edge->next[j] = NULL;
-			int vert = VertToInt(&graph, edge->vert[j]);
-			if (graph.edges[vert] == NULL) {
-				graph.edges[vert] = edge;
-				edge->prev[j] = NULL;
-			}
-			else {
-				EDGE *iter = graph.edges[vert];
-				int vie = iter->vert[0] == edge->vert[j] ? 0 : 1;
-				while (iter->next[vie] != NULL)
-				{
-					iter = iter->next[vie];
-					vie = iter->vert[0] == edge->vert[j] ? 0 : 1;
-				}
-				iter->next[vie] = edge;
-				edge->prev[j] = iter;
-			}
+	for (i = 0; i < 8; i++)
+		edge_title[i] = 0;
+	FILE *file_input;
+	if (argc == 3)
+		file_input = fopen(argv[2], "r");
+	else
+		file_input = fopen("input", "r");
+	j = 0;
+	do
+		{
+			fscanf(file_input, "%c", &a);
+			if ((a == 10) || (a == ' '))
+				j++;
 		}
-	}
+	while (a != 10);
+	rewind(file_input);
+	/* Graph init */
+	GRAPH graph;
+	graph.size = j;
+	graph.vertices = (char**)malloc(graph.size * sizeof(char*));
+	graph.tree = (int*)calloc(graph.size, sizeof(int));
+	graph.tree_edges = (EDGE**)malloc((graph.size - 1) * sizeof(EDGE*));
+	graph.edges = (EDGE**)calloc(graph.size, sizeof(EDGE*));
+	/* Graph.vertices init */
+	graph.vertices[0] = (char*)calloc(8, sizeof(char));
+	i = j = 0;
+	do
+		{
+			fscanf(file_input, "%c", &a);
+			if (a == ' ')
+				{
+					i = 0;
+					graph.vertices[++j] = (char*)calloc(8, sizeof(char));
+				}
+			else
+				{
+					if (a != 10)
+						graph.vertices[j][i++] = a;
+				}
+		}
+	while (a != 10);
+	/* Graph.edges init */
+	int file_rows = 0;
+	do
+		{
+			fscanf(file_input, "%c", &a);
+			if (a != 10)
+				file_rows = file_rows * 10 - 48 + a;
+		}
+	while (a != 10);
+	EDGE *edge;
+	do
+		{
+			edge = (EDGE*)malloc(sizeof(EDGE));
+			i = 0;
+			do
+				{
+					fscanf(file_input, "%c", &a);
+					if (a != ' ')
+						edge_title[i++] = a;
+				}
+			while (a != ' ');
+			edge->vert[0] = VertToInt(&graph, edge_title);
+			i = 0;
+			do
+				{
+					fscanf(file_input, "%c", &a);
+					if (a != ' ')
+						edge_title[i++] = a;
+				}
+			while (a != ' ');
+			edge->vert[1] = VertToInt(&graph, edge_title);
+			edge->weight = 0;
+			do
+				{
+					fscanf(file_input, "%c", &a);
+					if (a != 10)
+						edge->weight = edge->weight * 10 - 48 + a;
+				}
+			while (a != 10);
+			for (j = 0; j < 2; j++)
+				{
+					edge->next[j] = NULL;
+					if (graph.edges[edge->vert[j]] == NULL)
+						{
+							graph.edges[edge->vert[j]] = edge;
+							edge->prev[j] = NULL;
+						}
+					else 
+						{
+							EDGE *iter = graph.edges[edge->vert[j]];
+							int vie = iter->vert[0] == edge->vert[j] ? 0 : 1;
+							while (iter->next[vie] != NULL)
+								{
+									iter = iter->next[vie];
+									vie = iter->vert[0] == edge->vert[j] ? 0 : 1;
+								}
+							iter->next[vie] = edge;
+							edge->prev[j] = iter;
+						}
+				}
+		}
+	while (--file_rows);
+	fclose(file_input);
 	unsigned int *edges_in_row = (unsigned int*)calloc(graph.size, sizeof(unsigned int));
 	EDGE ***edges_array = (EDGE***)calloc(graph.size, sizeof(EDGE**));
 	for (i = 0; i < graph.size; i++)
@@ -99,7 +153,7 @@ int main(int argc, char **argv)
 		EDGE *iter = graph.edges[i];
 		while (iter != NULL)
 		{
-			if (iter->vert[0] == graph.vertices[i])
+			if (iter->vert[0] == i)
 				iter = iter->next[0];
 			else
 				iter = iter->next[1];
@@ -107,10 +161,10 @@ int main(int argc, char **argv)
 		}
 		edges_array[i] = (EDGE**)calloc(edges_in_row[i], sizeof(EDGE*));
 		iter = graph.edges[i];
-		for (int j = 0; j < edges_in_row[i]; j++)
+		for (j = 0; j < edges_in_row[i]; j++)
 		{
 			edges_array[i][j] = iter;
-			if (iter->vert[0] == graph.vertices[i])
+			if (iter->vert[0] == i)
 				iter = iter->next[0];
 			else
 				iter = iter->next[1];
@@ -137,14 +191,13 @@ int main(int argc, char **argv)
 			pthread_create(&(thread[i]), &p_attr, &FindMin, args[i]);
 		}
 	gettimeofday(&start_time, NULL);
-	graph.tree[0] = graph.vertices[0];
-	graph.treeSize = 1;
-	pthread_barrier_wait(&barrier);
-	while (graph.treeSize < graph.size) {
-		if (graph.treeSize > 1)
+	graph.tree[0] = 0;
+	graph.tree_size = 1;
+	while (graph.tree_size < graph.size) {
+		if (graph.tree_size > 1)
 			{
 				/* Delete edges to tree vertices from new tree vertice */
-				row = i = VertToInt(&graph, graph.tree[graph.treeSize - 1]);
+				row = i = graph.tree[graph.tree_size - 1];
 				pthread_barrier_wait(&barrier);
 				pthread_barrier_wait(&barrier);
 				row = -1;
@@ -164,9 +217,9 @@ int main(int argc, char **argv)
 						edges_array[i][j] = edges_array[i][j + move];
 					}
 				}
-			/* Start threads */
-			pthread_barrier_wait(&barrier);
 			}
+		/* Start threads */
+		pthread_barrier_wait(&barrier);
 		/* Wait for result */
 		pthread_barrier_wait(&barrier);
 		EDGE *min = NULL;
@@ -179,29 +232,23 @@ int main(int argc, char **argv)
 						min = mins[j];
 				}
 		/* Add vertice to graph.tree */
-		for (j = 0; j < graph.treeSize; j++)
+		for (j = 0; j < graph.tree_size; j++)
 			if (graph.tree[j] == min->vert[0])
-			{
-				graph.tree[graph.treeSize] = min->vert[1];
-				break;
-			}
+				graph.tree[j = graph.tree_size] = min->vert[1];
 			else if (graph.tree[j] == min->vert[1])
-			{
-				graph.tree[graph.treeSize] = min->vert[0];
-				break;
-			}
+				graph.tree[j = graph.tree_size] = min->vert[0];
 		/* Add edge to graph.tree_edges */
-		graph.tree_edges[graph.treeSize - 1] = min;
-		graph.treeSize++;
+		graph.tree_edges[graph.tree_size - 1] = min;
+		graph.tree_size++;
 	}
 	gettimeofday(&stop_time, NULL);
-	printf("\n%c\n", graph.tree[0]);
-	for (i = 1; i < graph.treeSize; i++)
+	printf("%s\n", graph.vertices[graph.tree[0]]);
+	for (i = 1; i < graph.tree_size; i++)
 	{
-		printf("%c - %c%c %d\n",
-			graph.tree[i],
-			graph.tree_edges[i - 1]->vert[0],
-			graph.tree_edges[i - 1]->vert[1],
+		printf("%s - %s %s %d\n",
+			graph.vertices[graph.tree[i]],
+			graph.vertices[graph.tree_edges[i - 1]->vert[0]],
+			graph.vertices[graph.tree_edges[i - 1]->vert[1]],
 			graph.tree_edges[i - 1]->weight);
 	}
 	long long result_time = (stop_time.tv_sec - start_time.tv_sec) * 1e6
@@ -222,26 +269,33 @@ int main(int argc, char **argv)
 	FE *fe = NULL;
 	for (i = 0; i < graph.size; i++)
 		{
-			j = graph.vertices[i];
 			edge = graph.edges[i];
 			while(edge != NULL)
 				{
 					AddEdgeToFE(fe, edge);
-					edge = edge->vert[0] == j ? edge->next[0] : edge->next[1];
+					edge = edge->vert[0] == i ? edge->next[0] : edge->next[1];
 				}
 		}
 	for (; fe != NULL; fe = fe->next)
 		free(fe->edge);
+	for (i = 0; i < graph.size; i++)
+		free(graph.vertices[i]);
 	free(graph.vertices);
 	free(graph.edges);
 	return 0;
 }
 
-int VertToInt(GRAPH *Graph, char Vert) {
-	int i;
-	for (i = 0; i < Graph->size; i++)
-		if (Graph->vertices[i] == Vert)
-			return i;
+int VertToInt(GRAPH *graph, char *vert) {
+	int i, j, b;
+	for (i = 0; i < graph->size; i++)
+		{
+			b = 1;
+			for (j = 0; b && (vert[j] != 0) && (j < 8); j++)
+				if (vert[j] != graph->vertices[i][j])
+					b = 0;
+			if (b)
+				return i;
+		}
 	return -1;
 }
 
@@ -254,9 +308,9 @@ void *FindMin(void *Arg) {
 	{
 	step_left = arg->thread_number;
 	vert = 0;
-	row = VertToInt(arg->graph, arg->graph->tree[vert]);
+	row = arg->graph->tree[vert];
 	arg->min[arg->thread_number] = NULL;
-	while (vert < arg->graph->treeSize)
+	while (vert < arg->graph->tree_size)
 	{
 		if (step_left < arg->edges_count[row])
 		{
@@ -270,8 +324,8 @@ void *FindMin(void *Arg) {
 		{
 			step_left -= arg->edges_count[row];
 			vert++;
-			if (vert < arg->graph->treeSize)
-				row = VertToInt(arg->graph, arg->graph->tree[vert]);
+			if (vert < arg->graph->tree_size)
+				row = arg->graph->tree[vert];
 		}
 	}
 	}
@@ -279,13 +333,13 @@ void *FindMin(void *Arg) {
 	{
 		for (int j = arg->thread_number; j < arg->edges_count[*arg->row]; j += *arg->cores)
 				{
-					for (int k = 0; k < (arg->graph->treeSize - 1); k++)
+					for (int k = 0; k < (arg->graph->tree_size - 1); k++)
 					{
 						int vie = arg->edges[*arg->row][j]->vert[0]
-							== arg->graph->tree[arg->graph->treeSize - 1] ? 1 : 0;
+							== arg->graph->tree[arg->graph->tree_size - 1] ? 1 : 0;
 						if (arg->edges[*arg->row][j]->vert[vie] == arg->graph->tree[k])
 						{
-							int move = 0, tree_row = VertToInt(arg->graph, arg->edges[*arg->row][j]->vert[vie]);
+							int move = 0, tree_row = arg->edges[*arg->row][j]->vert[vie];
 							for (int l = 0; l < arg->edges_count[tree_row]; l++)
 							{
 								if (move)
