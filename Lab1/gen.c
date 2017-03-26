@@ -9,7 +9,6 @@ typedef struct E {
 
 int main(int argc, char **argv)
 {
-	// TODO: Test argc == 3
 	if (argc != 3)
 		{
 			puts("Error! Usage: ./gen <Nodes count> <Output file>");
@@ -53,15 +52,32 @@ int main(int argc, char **argv)
 	int edge_count = 0;
 	for (int i = 0; i < count; i++)
 		{
+			int flag;
 			if (start == NULL)
 				start = end = (EDGE*)malloc(sizeof(EDGE));
 			else
 				end = end->next = (EDGE*)malloc(sizeof(EDGE));
 			edge_count++;
+			end->next = NULL;
 			end->nodes[0] = i;
 			do
 				{
-					end->nodes[1] = rand() % count;
+					do
+						{
+							end->nodes[1] = rand() % count;
+							EDGE *iter = start;
+							while ((iter != NULL) && (iter->nodes[0] != end->nodes[1]))
+								iter = iter->next;
+							flag = 0;
+							while ((iter != NULL) && (iter->nodes[0] == end->nodes[1]) && (flag == 0))
+								{
+									if (iter->nodes[1] == i)
+										flag = 1;
+									else
+										iter = iter->next;
+								}
+						}
+					while (flag);
 				}
 			while (end->nodes[1] == i);
 			end->weight = rand() % 99 + 1;
@@ -71,7 +87,22 @@ int main(int argc, char **argv)
 			end->nodes[0] = i;
 			do
 				{
-					end->nodes[1] = rand() % count;
+					do
+						{
+							end->nodes[1] = rand() % count;
+							EDGE *iter = start;
+							while ((iter != NULL) && (iter->nodes[0] != end->nodes[1]))
+								iter = iter->next;
+							flag = 0;
+							while ((iter != NULL) && (iter->nodes[0] == end->nodes[1]) && (flag == 0))
+								{
+									if (iter->nodes[1] == i)
+										flag = 1;
+									else
+										iter = iter->next;
+								}
+						}
+					while (flag);
 				}
 			while (end->nodes[1] == i);
 			end->weight = rand() % 99 + 1;
@@ -89,6 +120,7 @@ int main(int argc, char **argv)
 			fputc(10, file);
 		}
 	fclose(file);
+	printf("%d edges between %d nodes have just been written to the file \"%s\"\n", edge_count, count, argv[2]);
 	for (; start != NULL; start = start->next)
 		free(start);
 	for (int i = 0; i < count; i++)
