@@ -301,34 +301,24 @@ int VertToInt(GRAPH *graph, char *vert) {
 
 void *FindMin(void *Arg) {
 	ARG *arg = (ARG*)Arg;
-	int step_left, vert, row;
+	int /* step_left, vert, */ row;
 	pthread_barrier_wait(arg->barrier);
 	do {
 	if (*arg->row == -1)
-	{
-	step_left = arg->thread_number;
-	vert = 0;
-	row = arg->graph->tree[vert];
-	arg->min[arg->thread_number] = NULL;
-	while (vert < arg->graph->tree_size)
-	{
-		if (step_left < arg->edges_count[row])
 		{
-			if (arg->min[arg->thread_number] == NULL)
-				arg->min[arg->thread_number] = arg->edges[row][step_left];
-			else if (arg->min[arg->thread_number]->weight > arg->edges[row][step_left]->weight)
-				arg->min[arg->thread_number] = arg->edges[row][step_left];
-			step_left += *arg->cores;
+			arg->min[arg->thread_number] = NULL;
+			for (int j = arg->thread_number; j < arg->graph->tree_size; j += *arg->cores)
+				{
+					row = arg->graph->tree[j];
+					for (int k = 0; k < arg->edges_count[row]; k++)
+						{
+							if (arg->min[arg->thread_number] == NULL)
+								arg->min[arg->thread_number] = arg->edges[row][k];
+							else if (arg->min[arg->thread_number]->weight > arg->edges[row][k]->weight)
+								arg->min[arg->thread_number] = arg->edges[row][k];
+						}
+				}
 		}
-		else
-		{
-			step_left -= arg->edges_count[row];
-			vert++;
-			if (vert < arg->graph->tree_size)
-				row = arg->graph->tree[vert];
-		}
-	}
-	}
 	else
 	{
 		for (int j = arg->thread_number; j < arg->edges_count[*arg->row]; j += *arg->cores)
