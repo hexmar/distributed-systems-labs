@@ -372,25 +372,25 @@ FindMin (void *Arg)
 
 void
 AddEdgeToFE (FE *fe, EDGE *edge)
-  {
-    if (fe == NULL)
-      {
-        fe = (FE *) malloc (sizeof (FE));
-        fe->edge = edge;
-        fe->next = NULL;
-      }
-    else
-      {
-        FE *iter = fe;
-        int b = 1;
-        for (; b && (iter->next != NULL); iter = iter->next)
-          if (iter->edge == edge)
-            b = 0;
-        if (b == 1)
-          {
-            iter = iter->next = (FE *) malloc (sizeof (FE));
-            iter->edge = edge;
-            iter->next = NULL;
-          }
-      }
-  }
+{
+  if (fe == NULL)
+    {
+      fe = (FE *) malloc (sizeof (FE));
+      fe->edge = edge;
+      fe->next = NULL;
+    }
+  else
+    {
+      FE *iter = fe;
+      int b = 1;
+      for (; b && (iter->next != NULL); iter = iter->next)
+        if (iter->edge == edge)
+          b = 0;
+      if (b == 1)
+        {
+          iter = iter->next = (FE *) malloc (sizeof (FE));
+          iter->edge = edge;
+          iter->next = NULL;
+        }
+    }
+}
