@@ -264,7 +264,7 @@ main (int argc, char **argv)
   fclose (file_output);
   long long result_time = (stop_time.tv_sec - start_time.tv_sec) * 1e6
                           + (stop_time.tv_usec - start_time.tv_usec);
-  printf ("\n%lld\n", result_time);
+  printf ("\n%lld milliseconds\n", result_time);
   cores = 0;
   pthread_barrier_wait (&barrier);
   pthread_barrier_destroy (&barrier);
